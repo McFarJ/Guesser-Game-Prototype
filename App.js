@@ -5,12 +5,15 @@ import {
   AppRegistry,
   ActivityIndicator,
   Button,
+  Image,
+  SafeAreaView,
   Slider,
   StyleSheet,
   Text,
   TextInput,
   TouchableHighlight,
-  View
+  View,
+  WebView
 } from "react-native";
 
 const styles = StyleSheet.create({
@@ -34,17 +37,39 @@ const styles = StyleSheet.create({
 
 let sliderInitialized = false;
 
-export default class HelloWorldApp extends Component {
+function numWithCommas(num) {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function numWithNoCommas(num) {
+  let noCommas = num.replace(/,/g, "");
+  return Number(noCommas);
+}
+
+export default class YouTubeGameApp extends Component {
   constructor(props) {
     super(props);
-    this.state = { text: "", guess: 0, sliderValue: 0 };
+    this.state = {
+      text: "",
+      guess: 0,
+      sliderValue: 0,
+      players: [{ name: "Player 1", score: 0 }, { name: "Player 2", score: 0 }],
+      activePlayer: 0,
+      gameType: "CLOSEST GUESS WINS",
+      round: 1,
+      time: 60,
+      currentConcern: {
+        URI: null,
+        title: null,
+        subTitle: null,
+        views: null,
+        likes: null,
+        dislikes: null
+      }
+    };
 
     this.onSliderChange = this.onSliderChange.bind(this);
     this.onSlidingComplete = this.onSlidingComplete.bind(this);
-  }
-
-  _onPressButton() {
-    return;
   }
 
   componentDidMount() {
@@ -77,6 +102,9 @@ export default class HelloWorldApp extends Component {
             return;
           } else {
             newGuess = this.state.guess + this.state.sliderValue;
+            if (newGuess < 0) {
+              newGuess = 0;
+            }
             this.setState({ guess: Math.round(newGuess) });
           }
         }.bind(this),
@@ -93,76 +121,96 @@ export default class HelloWorldApp extends Component {
       }.bind(this),
       50
     );
-    // document.getElementById("main-slider").value = "0";
   }
 
   render() {
     return (
-      <View
-        style={{
-          flex: 1,
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
-      >
+      <SafeAreaView style={{ flex: 1 }}>
         <View
           style={{
             flex: 1,
-            backgroundColor: "powderblue"
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: 25,
+            marginBottom: 25
           }}
         >
-          <Text>Player Name</Text>
-        </View>
-        <View
-          style={{
-            flex: 2,
-            backgroundColor: "skyblue"
-          }}
-        >
-          <Text>Video</Text>
-        </View>
-        <View
-          style={{
-            flex: 3,
-            backgroundColor: "steelblue"
-          }}
-        >
-          <Text>Guessing Tools</Text>
-          <TextInput
-            placeholder="Type your bet or use slider"
-            onChangeText={text => this.setState({ text })}
-          />
-          <Text style={{ flex: 1, padding: 10, fontSize: 42 }}>
-            {this.state.guess}
-          </Text>
-          <Slider
-            id="main-slider"
-            style={{ width: 200, height: 40 }}
-            minimumValue={-200}
-            maximumValue={200}
-            value={this.state.sliderValue}
-            minimumTrackTintColor="#FFFFFF"
-            maximumTrackTintColor="#000000"
-            onValueChange={this.onSliderChange}
-            onSlidingComplete={this.onSlidingComplete}
-          />
-        </View>
-        <Button
-          style={{ flex: 1 }}
-          onPress={this._onPressButton}
-          title="Press Me (button)"
-        />
-        <TouchableHighlight
-          style={{ flex: 1 }}
-          onPress={this._onPressButton}
-          underlayColor="red"
-        >
-          <View style={styles.button}>
-            <Text style={styles.buttonText}>Press Me TouchableHighlight</Text>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "powderblue",
+              flexDirection: "row"
+            }}
+          >
+            <Text style={{ flex: 9 }}>{this.state.gameType}</Text>
+            <Image
+              source={require("./assets/icon.png")}
+              style={{
+                flex: 1,
+                resizeMode: "contain",
+                height: undefined,
+                width: undefined
+              }}
+            />
           </View>
-        </TouchableHighlight>
-      </View>
+          <View
+            style={{
+              flex: 6,
+              backgroundColor: "skyblue",
+              alignSelf: "stretch"
+            }}
+          >
+            <WebView
+              style={{ flex: 1, marginLeft: 20, marginRight: 20 }}
+              javaScriptEnabled={true}
+              source={{ uri: "https://www.youtube.com/embed/HMcVYmCnnVQ" }}
+            />
+            <View>
+              <Text style={{ textAlign: "center" }}>name of video</Text>
+              <Text style={{ textAlign: "center" }}>username</Text>
+            </View>
+          </View>
+          <View
+            style={{
+              flex: 4,
+              backgroundColor: "steelblue",
+              alignSelf: "stretch"
+            }}
+          >
+            <View style={{ flexDirection: "row" }}>
+              <Text>Round {this.state.round}: </Text>
+              <Text>{this.state.players[0].name}, </Text>
+              <Text>{this.state.players[1].name}</Text>
+            </View>
+            <TextInput
+              id="game_dynamic-number"
+              style={{
+                flex: 1,
+                padding: 10,
+                fontSize: 42,
+                textAlign: "center"
+              }}
+              onChangeText={text =>
+                this.setState({ guess: `${numWithNoCommas(text)}` })
+              }
+              value={`${numWithCommas(this.state.guess)}`}
+            />
+            <Slider
+              style={{ width: 350, height: 40, alignSelf: "center" }}
+              minimumValue={-200}
+              maximumValue={200}
+              value={this.state.sliderValue}
+              minimumTrackTintColor="#FFFFFF"
+              maximumTrackTintColor="#000000"
+              onValueChange={this.onSliderChange}
+              onSlidingComplete={this.onSlidingComplete}
+            />
+          </View>
+          {/* Will need to create own TouchableOpacity button if want to control things like height and font-size*/}
+          <Button onPress={this._onPressButton} title="Guess!" />
+        </View>
+      </SafeAreaView>
     );
   }
 }
