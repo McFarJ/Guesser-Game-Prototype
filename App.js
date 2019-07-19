@@ -1,3 +1,11 @@
+// Resource:  playlist (for future implimentation of user curated rounds)
+//            search result
+//            thumbnail (possibly use instead of embedding video?)
+//            video (for info on single video)
+//            videoCategory (are the categories in this list all I can use?)
+// part parameter: snippet?, contentDetails?, fileDetails?, statistics? (has viewCount, likeCount, dislikeCount)
+// fields parameter (use to narrow down response data)
+
 //Expo doesnt support SVG
 import React, { Component } from "react";
 // AppRegistry not needed if using Create React Native App
@@ -15,6 +23,8 @@ import {
   View,
   WebView
 } from "react-native";
+// for secret API key
+import { config } from "./config.js";
 
 const styles = StyleSheet.create({
   bibBlue: {
@@ -35,7 +45,29 @@ const styles = StyleSheet.create({
   }
 });
 
+// Secret API key variable
+const myKey = config.myKey;
+
 let sliderInitialized = false;
+
+let testDATA = {
+  id: "NOTbitcoin",
+  name: "Bitcoin",
+  symbol: "BTC",
+  rank: "1",
+  price_usd: "10449.9243372",
+  price_btc: "1.0",
+  "24h_volume_usd": "21015715417.2",
+  market_cap_usd: "186281782875",
+  available_supply: "17826137.0",
+  total_supply: "17826137.0",
+  max_supply: "21000000.0",
+  percent_change_1h: "0.2",
+  percent_change_24h: "-1.35",
+  percent_change_7d: "-10.79",
+  last_updated: "1563568107"
+};
+let test = JSON.stringify(testDATA);
 
 function numWithCommas(num) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -72,6 +104,8 @@ export default class YouTubeGameApp extends Component {
     this.onSlidingComplete = this.onSlidingComplete.bind(this);
   }
 
+  // should I use async?
+  // reference: https://medium.com/@alialhaddad/fetching-data-in-react-native-d92fb6876973
   componentDidMount() {
     //   FOR iOS, REQUESTS NEED TO BE ENCRYPTED USING SSL
     return fetch("https://facebook.github.io/react-native/movies.json")
@@ -123,6 +157,14 @@ export default class YouTubeGameApp extends Component {
     );
   }
 
+  // test 1/2
+  async componentDidMount() {
+    fetch(`https://api.coinmarketcap.com/v1/ticker/?limit=1`)
+      .then(res => res.json())
+      // .then(json => this.setState({ data: json }));
+      .then(json => (test = JSON.stringify(json)));
+  }
+
   render() {
     return (
       <SafeAreaView style={{ flex: 1 }}>
@@ -136,6 +178,8 @@ export default class YouTubeGameApp extends Component {
             marginBottom: 25
           }}
         >
+          {/* test 2/2 */}
+          <Text>{test}</Text>
           <View
             style={{
               flex: 1,
