@@ -1,12 +1,59 @@
-// Resource:  playlist (for future implimentation of user curated rounds)
-//            search result
-//            thumbnail (possibly use instead of embedding video?)
-//            video (for info on single video)
-//            videoCategory (are the categories in this list all I can use?)
-// part parameter: snippet?, contentDetails?, fileDetails?, statistics? (has viewCount, likeCount, dislikeCount)
-// fields parameter (use to narrow down response data)
+// https://www.googleapis.com/youtube/v3/search?q=lebrock&type=video&maxResults=3&part=snippet&fields=items(id,snippet/title,snippet/position,id/videoId)&key=AIzaSyAWH21tONDJLTI83JA5FjqV4rxU1PmplsQ
 
-//Expo doesnt support SVG
+// search       search?q={QUERY}&type=video
+// rounds       &maxResults={ROUNDS}
+// fields       &part=snippet&fields=items(snippet(title,channelTitle),id/videoId)
+
+// answers      videos?id={I}
+
+// Resource:        playlist (for use in future implimentation of user curated rounds)
+//                  search result
+//                  thumbnail (possibly use instead of embedding video?)
+//                  video (for info on single video)
+//                  videoCategory (are the categories in this list all I can use?)
+// part parameter:  snippet (publishedAt: datetime, title, description, thumbnails, channelTitle)
+//                  statistics? (viewCount, likeCount, dislikeCount)
+//                  topicCategories?
+//                  relevantTopicIds?
+//                  fields parameter (use to narrow down response data)
+
+// list (most popular videos, and most popular videos by category, search result)
+
+// CategoryIds:
+// 1 - Film & Animation
+// 2 - Autos & Vehicles
+// 10 - Music
+// 15 - Pets & Animals
+// 17 - Sports
+// 18 - Short Movies
+// 19 - Travel & Events
+// 20 - Gaming
+// 21 - Videoblogging
+// 22 - People & Blogs
+// 23 - Comedy
+// 24 - Entertainment
+// 25 - News & Politics
+// 26 - Howto & Style
+// 27 - Education
+// 28 - Science & Technology
+// 29 - Nonprofits & Activism
+// 30 - Movies
+// 31 - Anime/Animation
+// 32 - Action/Adventure
+// 33 - Classics
+// 34 - Comedy
+// 35 - Documentary
+// 36 - Drama
+// 37 - Family
+// 38 - Foreign
+// 39 - Horror
+// 40 - Sci-Fi/Fantasy
+// 41 - Thriller
+// 42 - Shorts
+// 43 - Shows
+// 44 - Trailers
+
+//Expo doesnt support SVG?
 import React, { Component } from "react";
 // AppRegistry not needed if using Create React Native App
 import {
@@ -26,48 +73,27 @@ import {
 // for secret API key
 import { config } from "./config.js";
 
-const styles = StyleSheet.create({
-  bibBlue: {
-    color: "blue",
-    fontWeight: "bold",
-    fontSize: 30
-  },
-  red: {
-    color: "red"
-  },
-  button: {
-    height: 50,
-    color: "red"
-  },
-  buttonText: {
-    height: 50,
-    color: "blue"
-  }
-});
-
 // Secret API key variable
 const myKey = config.myKey;
 
 let sliderInitialized = false;
 
-let testDATA = {
-  id: "NOTbitcoin",
-  name: "Bitcoin",
-  symbol: "BTC",
-  rank: "1",
-  price_usd: "10449.9243372",
-  price_btc: "1.0",
-  "24h_volume_usd": "21015715417.2",
-  market_cap_usd: "186281782875",
-  available_supply: "17826137.0",
-  total_supply: "17826137.0",
-  max_supply: "21000000.0",
-  percent_change_1h: "0.2",
-  percent_change_24h: "-1.35",
-  percent_change_7d: "-10.79",
-  last_updated: "1563568107"
-};
-let test = JSON.stringify(testDATA);
+let test;
+
+let concerns = [];
+
+let userSearch = "lebrock";
+let gameQuery = `search?q=${userSearch}&type=video`;
+let rounds = "3";
+let queryUrl = `https://www.googleapis.com/youtube/v3/${gameQuery}&maxResults=${rounds}&part=snippet&fields=items(snippet(title,channelTitle),id/videoId)&key=${
+  config.YouTubeDataKey
+}`;
+
+function setConcerns(array) {
+  array.forEach(x => {
+    concerns.push(x);
+  });
+}
 
 function numWithCommas(num) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -88,10 +114,11 @@ export default class YouTubeGameApp extends Component {
       players: [{ name: "Player 1", score: 0 }, { name: "Player 2", score: 0 }],
       activePlayer: 0,
       gameType: "CLOSEST GUESS WINS",
-      round: 1,
+      rounds: 5,
+      currentRound: 1,
       time: 60,
       currentConcern: {
-        URI: null,
+        URL: null,
         title: null,
         subTitle: null,
         views: null,
@@ -102,26 +129,7 @@ export default class YouTubeGameApp extends Component {
 
     this.onSliderChange = this.onSliderChange.bind(this);
     this.onSlidingComplete = this.onSlidingComplete.bind(this);
-  }
-
-  // should I use async?
-  // reference: https://medium.com/@alialhaddad/fetching-data-in-react-native-d92fb6876973
-  componentDidMount() {
-    //   FOR iOS, REQUESTS NEED TO BE ENCRYPTED USING SSL
-    return fetch("https://facebook.github.io/react-native/movies.json")
-      .then(response => response.json())
-      .then(responseJson => {
-        this.setState(
-          {
-            isLoading: false,
-            dataSource: responseJson.movies
-          },
-          function() {}
-        );
-      })
-      .catch(error => {
-        console.error(error);
-      });
+    this.onAbacusButtonPress = this.onAbacusButtonPress.bind(this);
   }
 
   onSliderChange(val) {
@@ -130,20 +138,24 @@ export default class YouTubeGameApp extends Component {
       const initialValueAdd = this.state.guess + this.state.sliderValue;
       this.setState({ guess: Math.round(initialValueAdd) });
       sliderInitialized = true;
-      setInterval(
-        function() {
-          if (!sliderInitialized) {
-            return;
-          } else {
-            newGuess = this.state.guess + this.state.sliderValue;
-            if (newGuess < 0) {
-              newGuess = 0;
-            }
-            this.setState({ guess: Math.round(newGuess) });
-          }
-        }.bind(this),
-        50
-      );
+      // setInterval(
+      // function() {
+      if (!sliderInitialized) {
+        return;
+      } else {
+        newGuess =
+          this.state.guess +
+          this.state.sliderValue *
+            this.state.sliderValue *
+            this.state.sliderValue;
+        if (newGuess < 0) {
+          newGuess = 0;
+        }
+        this.setState({ guess: Math.round(newGuess) });
+      }
+      // }.bind(this),
+      // 50
+      // );
     }
   }
 
@@ -157,12 +169,32 @@ export default class YouTubeGameApp extends Component {
     );
   }
 
-  // test 1/2
+  onAbacusButtonPress() {
+    return;
+  }
+
+  // should I use async?
+  // reference: https://medium.com/@alialhaddad/fetching-data-in-react-native-d92fb6876973
   async componentDidMount() {
-    fetch(`https://api.coinmarketcap.com/v1/ticker/?limit=1`)
-      .then(res => res.json())
-      // .then(json => this.setState({ data: json }));
-      .then(json => (test = JSON.stringify(json)));
+    //   FOR iOS, REQUESTS NEED TO BE ENCRYPTED USING SSL
+
+    return fetch(queryUrl)
+      .then(response => response.json())
+      .then(responseJson => {
+        this.setState(
+          {
+            isLoading: false,
+            dataSource: responseJson
+          },
+          function() {}
+        );
+        // test = JSON.stringify(this.state.dataSource);
+        this.setState({ currentConcern: responseJson.items[0] });
+        test = JSON.stringify(this.state.currentConcern);
+      })
+      .catch(error => {
+        console.error(error);
+      });
   }
 
   render() {
@@ -223,7 +255,7 @@ export default class YouTubeGameApp extends Component {
             }}
           >
             <View style={{ flexDirection: "row" }}>
-              <Text>Round {this.state.round}: </Text>
+              <Text>Round {this.state.currentRound}: </Text>
               <Text>{this.state.players[0].name}, </Text>
               <Text>{this.state.players[1].name}</Text>
             </View>
@@ -240,6 +272,81 @@ export default class YouTubeGameApp extends Component {
               }
               value={`${numWithCommas(this.state.guess)}`}
             />
+            <View
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                backgroundColor: "red",
+                opacity: 0.5,
+                alignSelf: "stretch",
+                alignContent: "center"
+              }}
+            >
+              <TouchableHighlight
+                style={[styles.abacusButton, styles.abacus1]}
+                underlayColor={"pink"}
+                activeOpacity={1}
+                onPress={this.onAbacusButtonPress}
+              >
+                <Text>1</Text>
+              </TouchableHighlight>
+              <TouchableHighlight
+                style={[styles.abacusButton, styles.abacus100]}
+                underlayColor={"pink"}
+                activeOpacity={1}
+                onPress={this.onAbacusButtonPress}
+              >
+                <Text>100</Text>
+              </TouchableHighlight>
+              <TouchableHighlight
+                style={[styles.abacusButton, styles.abacus1k]}
+                underlayColor={"pink"}
+                activeOpacity={1}
+                onPress={this.onAbacusButtonPress}
+              >
+                <Text>1k</Text>
+              </TouchableHighlight>
+              <TouchableHighlight
+                style={[styles.abacusButton, styles.abacus100k]}
+                underlayColor={"pink"}
+                activeOpacity={1}
+                onPress={this.onAbacusButtonPress}
+              >
+                <Text>100k</Text>
+              </TouchableHighlight>
+              <TouchableHighlight
+                style={[styles.abacusButton, styles.abacus1m]}
+                underlayColor={"pink"}
+                activeOpacity={1}
+                onPress={this.onAbacusButtonPress}
+              >
+                <Text>1m</Text>
+              </TouchableHighlight>
+              <TouchableHighlight
+                style={[styles.abacusButton, styles.abacus100m]}
+                underlayColor={"pink"}
+                activeOpacity={1}
+                onPress={this.onAbacusButtonPress}
+              >
+                <Text>100m</Text>
+              </TouchableHighlight>
+              <TouchableHighlight
+                style={[styles.abacusButton, styles.abacus1b]}
+                underlayColor={"pink"}
+                activeOpacity={1}
+                onPress={this.onAbacusButtonPress}
+              >
+                <Text>1b</Text>
+              </TouchableHighlight>
+              <TouchableHighlight
+                style={[styles.abacusButton, styles.abacus100b]}
+                underlayColor={"pink"}
+                activeOpacity={1}
+                onPress={this.onAbacusButtonPress}
+              >
+                <Text>100b</Text>
+              </TouchableHighlight>
+            </View>
             <Slider
               style={{ width: 350, height: 40, alignSelf: "center" }}
               minimumValue={-200}
@@ -262,34 +369,40 @@ export default class YouTubeGameApp extends Component {
 // AppRegistry not needed if using Create React Native App
 AppRegistry.registerComponent("AwesomeProject", () => UselessTextInput);
 
-// A slider which, on continual intervals, adds a value, related to the val of the slider, to a variable, and returns to start when released.
-// >relevant equation for exponential slope might be here (second derivative test) http://tutorial.math.lamar.edu/Classes/CalcI/ShapeofGraphPtII.aspx
-// (-)1st - (-)23rd
-// 0 <- start
-// +1 <- 1st
-// +2
-// +4
-// +8
-// +16
-// +32
-// +64
-// +128
-// 256
-// 512
-// 1024
-// 2048
-// 4096
-// 8192
-// 16384
-// 32768
-// 65536
-// 131072
-// 262144
-// 524288
-// 1048576
-// 2097152
-// 4194304
-// 8388608 <- 23rd
-//
-// what is 'x' when 'y' is 1,000,000,000? (what do I set max/min value to?)
-// what is the equation to determine 'y' at a given 'x' (what is the value added?)
+const styles = StyleSheet.create({
+  abacusButton: {
+    alignItems: "center",
+    padding: 10,
+    margin: 5,
+    flex: 1,
+    borderRadius: 50,
+    width: 5,
+    height: 30
+  },
+
+  abacus1: { backgroundColor: "purple" },
+  abacus100: { backgroundColor: "orange" },
+  abacus1k: { backgroundColor: "green" },
+  abacus100k: { backgroundColor: "brown" },
+  abacus1m: { backgroundColor: "pink" },
+  abacus100m: { backgroundColor: "blue" },
+  abacus1b: { backgroundColor: "yellow" },
+  abacus100b: { backgroundColor: "cyan" },
+
+  bibBlue: {
+    color: "blue",
+    fontWeight: "bold",
+    fontSize: 30
+  },
+  red: {
+    color: "red"
+  },
+  button: {
+    height: 50,
+    color: "red"
+  },
+  buttonText: {
+    height: 50,
+    color: "blue"
+  }
+});
