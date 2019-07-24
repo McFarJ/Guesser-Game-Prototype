@@ -1,8 +1,11 @@
-// https://www.googleapis.com/youtube/v3/search?q=lebrock&type=video&maxResults=3&part=snippet&fields=items(id,snippet/title,snippet/position,id/videoId)&key=AIzaSyAWH21tONDJLTI83JA5FjqV4rxU1PmplsQ
+// https://www.googleapis.com/youtube/v3/search?q=lebrock&type=video&maxResults=3&part=snippet&fields=items(snippet(title,channelTitle),id/videoId)&key=${myKey}
 
+// INITIAL VIDEO SET FOR SEARCH
 // search       search?q={QUERY}&type=video
 // rounds       &maxResults={ROUNDS}
 // fields       &part=snippet&fields=items(snippet(title,channelTitle),id/videoId)
+
+// SPECIFIC VIDEO DETAILS
 
 // answers      videos?id={I}
 
@@ -15,7 +18,6 @@
 //                  statistics? (viewCount, likeCount, dislikeCount)
 //                  topicCategories?
 //                  relevantTopicIds?
-//                  fields parameter (use to narrow down response data)
 
 // list (most popular videos, and most popular videos by category, search result)
 
@@ -70,30 +72,26 @@ import {
   View,
   WebView
 } from "react-native";
-// for secret API key
 import { config } from "./config.js";
+import { youTubeButtons } from "./components/abacus-buttons";
 
-// Secret API key variable
-const myKey = config.myKey;
-
-let sliderInitialized = false;
+const myKey = config.YouTubeDataKey;
 
 let test;
 
 let concerns = [];
+let stage;
+let abacusAmount;
+let testingPressedButton;
+let abacusPressOut = false;
+let intervalId = 0;
+
+const buttonSet = youTubeButtons;
 
 let userSearch = "lebrock";
 let gameQuery = `search?q=${userSearch}&type=video`;
 let rounds = "3";
-let queryUrl = `https://www.googleapis.com/youtube/v3/${gameQuery}&maxResults=${rounds}&part=snippet&fields=items(snippet(title,channelTitle),id/videoId)&key=${
-  config.YouTubeDataKey
-}`;
-
-function setConcerns(array) {
-  array.forEach(x => {
-    concerns.push(x);
-  });
-}
+let queryUrl = `https://www.googleapis.com/youtube/v3/${gameQuery}&maxResults=${rounds}&part=snippet&fields=items(snippet(title,channelTitle),id/videoId)&key=${myKey}`;
 
 function numWithCommas(num) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -108,17 +106,19 @@ export default class YouTubeGameApp extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      world: "YouTube",
       text: "",
       guess: 0,
-      sliderValue: 0,
       players: [{ name: "Player 1", score: 0 }, { name: "Player 2", score: 0 }],
       activePlayer: 0,
       gameType: "CLOSEST GUESS WINS",
       rounds: 5,
       currentRound: 1,
       time: 60,
+      deleteMe: null,
+      currentConcernLoading: true,
       currentConcern: {
-        URL: null,
+        url: null,
         title: null,
         subTitle: null,
         views: null,
@@ -127,70 +127,70 @@ export default class YouTubeGameApp extends Component {
       }
     };
 
-    this.onSliderChange = this.onSliderChange.bind(this);
-    this.onSlidingComplete = this.onSlidingComplete.bind(this);
     this.onAbacusButtonPress = this.onAbacusButtonPress.bind(this);
+    // this.onAbacusButtonLongPress = this.onAbacusButtonLongPress.bind(this);
+    // this.onAbacusPressOut = this.onAbacusPressOut.bind(this);
   }
 
-  onSliderChange(val) {
-    this.setState({ sliderValue: val });
-    if (!sliderInitialized) {
-      const initialValueAdd = this.state.guess + this.state.sliderValue;
-      this.setState({ guess: Math.round(initialValueAdd) });
-      sliderInitialized = true;
-      // setInterval(
-      // function() {
-      if (!sliderInitialized) {
-        return;
-      } else {
-        newGuess =
-          this.state.guess +
-          this.state.sliderValue *
-            this.state.sliderValue *
-            this.state.sliderValue;
-        if (newGuess < 0) {
-          newGuess = 0;
-        }
-        this.setState({ guess: Math.round(newGuess) });
-      }
-      // }.bind(this),
-      // 50
-      // );
-    }
-  }
-
-  onSlidingComplete() {
-    sliderInitialized = false;
-    setTimeout(
-      function() {
-        this.setState({ sliderValue: 0 });
-      }.bind(this),
-      50
-    );
-  }
-
-  onAbacusButtonPress() {
+  onAbacusButtonPress(abacusAmount) {
+    let oldGuess = this.state.guess;
+    let newGuess = oldGuess + abacusAmount;
+    this.setState({ guess: newGuess });
     return;
   }
+
+  // onAbacusButtonLongPress(abacusAmount) {
+  //   setInterval(() => {
+  //     if (!abacusPressOut) {
+  //       let oldGuess = this.state.guess;
+  //       let newGuess = oldGuess + abacusAmount;
+  //       this.setState({ guess: newGuess });
+  //       abacusPressOut = false;
+  //       test = abacusPressOut;
+  //     } else clearInterval(interval);
+  //   }, 100);
+  //   return;
+  // }
+
+  // onAbacusPressOut() {
+  //   clearInterval(myInterval);
+  // }
 
   // should I use async?
   // reference: https://medium.com/@alialhaddad/fetching-data-in-react-native-d92fb6876973
   async componentDidMount() {
     //   FOR iOS, REQUESTS NEED TO BE ENCRYPTED USING SSL
-
     return fetch(queryUrl)
-      .then(response => response.json())
-      .then(responseJson => {
-        this.setState(
-          {
-            isLoading: false,
-            dataSource: responseJson
-          },
-          function() {}
-        );
-        // test = JSON.stringify(this.state.dataSource);
-        this.setState({ currentConcern: responseJson.items[0] });
-        test = JSON.stringify(this.state.currentConcern);
+      .then(res => res.json())
+      .then(resJson => {
+        this.setState({
+          currentConcernLoading: false,
+          currentConcern: {
+            url: `https://www.youtube.com/embed/${resJson.items[0].id.videoId}`,
+            title: resJson.items[0].snippet.title,
+            subTitle: resJson.items[0].snippet.channelTitle
+          }
+        });
+
+        let resLength = resJson.items.length;
+        for (i = 0; i < resLength - 1; i++) {
+          let videoId = resJson.items[i].id.videoId;
+          let statsFields =
+            "fields=items(statistics(viewCount,likeCount,dislikeCount))";
+          let videoStatsQuery = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoId}&${statsFields}&key=${myKey}`;
+          fetch(videoStatsQuery)
+            .then(statsRes => statsRes.json())
+            .then(statsResJson => {
+              concerns.push({
+                url: `https://www.youtube.com/watch?v=${videoId}`,
+                title: resJson.items[i].snippet.title,
+                subTitle: resJson.items[i].snippet.channelTitle,
+                viewCount: statsResJson.items.viewCount,
+                likes: statsResJson.items.likeCount,
+                dislikes: statsResJson.items.dislikeCount
+              });
+            });
+        }
       })
       .catch(error => {
         console.error(error);
@@ -198,6 +198,35 @@ export default class YouTubeGameApp extends Component {
   }
 
   render() {
+    if (this.state.currentConcernLoading) {
+      stage = <Text>Loading...</Text>;
+    } else {
+      let uri = this.state.currentConcern.url;
+      stage = (
+        <View
+          style={{
+            flex: 6,
+            backgroundColor: "skyblue",
+            alignSelf: "stretch"
+          }}
+        >
+          <WebView
+            style={{ flex: 1, marginLeft: 20, marginRight: 20 }}
+            javaScriptEnabled={true}
+            source={{ uri: uri }}
+          />
+          <View>
+            <Text style={{ textAlign: "center" }}>
+              Title: {this.state.currentConcern.title}
+            </Text>
+            <Text style={{ textAlign: "center" }}>
+              Channel: {this.state.currentConcern.subTitle}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <SafeAreaView style={{ flex: 1 }}>
         <View
@@ -237,15 +266,7 @@ export default class YouTubeGameApp extends Component {
               alignSelf: "stretch"
             }}
           >
-            <WebView
-              style={{ flex: 1, marginLeft: 20, marginRight: 20 }}
-              javaScriptEnabled={true}
-              source={{ uri: "https://www.youtube.com/embed/HMcVYmCnnVQ" }}
-            />
-            <View>
-              <Text style={{ textAlign: "center" }}>name of video</Text>
-              <Text style={{ textAlign: "center" }}>username</Text>
-            </View>
+            {stage}
           </View>
           <View
             style={{
@@ -282,81 +303,20 @@ export default class YouTubeGameApp extends Component {
                 alignContent: "center"
               }}
             >
-              <TouchableHighlight
-                style={[styles.abacusButton, styles.abacus1]}
-                underlayColor={"pink"}
-                activeOpacity={1}
-                onPress={this.onAbacusButtonPress}
-              >
-                <Text>1</Text>
-              </TouchableHighlight>
-              <TouchableHighlight
-                style={[styles.abacusButton, styles.abacus100]}
-                underlayColor={"pink"}
-                activeOpacity={1}
-                onPress={this.onAbacusButtonPress}
-              >
-                <Text>100</Text>
-              </TouchableHighlight>
-              <TouchableHighlight
-                style={[styles.abacusButton, styles.abacus1k]}
-                underlayColor={"pink"}
-                activeOpacity={1}
-                onPress={this.onAbacusButtonPress}
-              >
-                <Text>1k</Text>
-              </TouchableHighlight>
-              <TouchableHighlight
-                style={[styles.abacusButton, styles.abacus100k]}
-                underlayColor={"pink"}
-                activeOpacity={1}
-                onPress={this.onAbacusButtonPress}
-              >
-                <Text>100k</Text>
-              </TouchableHighlight>
-              <TouchableHighlight
-                style={[styles.abacusButton, styles.abacus1m]}
-                underlayColor={"pink"}
-                activeOpacity={1}
-                onPress={this.onAbacusButtonPress}
-              >
-                <Text>1m</Text>
-              </TouchableHighlight>
-              <TouchableHighlight
-                style={[styles.abacusButton, styles.abacus100m]}
-                underlayColor={"pink"}
-                activeOpacity={1}
-                onPress={this.onAbacusButtonPress}
-              >
-                <Text>100m</Text>
-              </TouchableHighlight>
-              <TouchableHighlight
-                style={[styles.abacusButton, styles.abacus1b]}
-                underlayColor={"pink"}
-                activeOpacity={1}
-                onPress={this.onAbacusButtonPress}
-              >
-                <Text>1b</Text>
-              </TouchableHighlight>
-              <TouchableHighlight
-                style={[styles.abacusButton, styles.abacus100b]}
-                underlayColor={"pink"}
-                activeOpacity={1}
-                onPress={this.onAbacusButtonPress}
-              >
-                <Text>100b</Text>
-              </TouchableHighlight>
+              {buttonSet.map(i => (
+                <TouchableHighlight
+                  key={this.state.world + " " + "abacusButton" + i.name}
+                  style={[styles.abacusButton, styles["abacusButton" + i.name]]}
+                  underlayColor={"pink"}
+                  activeOpacity={1}
+                  onPress={() => this.onAbacusButtonPress(i.amount)}
+                  onLongPress={this.addAbacus}
+                  onPressOut={this.onAbacusPressOut}
+                >
+                  <Text>{i.name}</Text>
+                </TouchableHighlight>
+              ))}
             </View>
-            <Slider
-              style={{ width: 350, height: 40, alignSelf: "center" }}
-              minimumValue={-200}
-              maximumValue={200}
-              value={this.state.sliderValue}
-              minimumTrackTintColor="#FFFFFF"
-              maximumTrackTintColor="#000000"
-              onValueChange={this.onSliderChange}
-              onSlidingComplete={this.onSlidingComplete}
-            />
           </View>
           {/* Will need to create own TouchableOpacity button if want to control things like height and font-size*/}
           <Button onPress={this._onPressButton} title="Guess!" />
@@ -380,29 +340,44 @@ const styles = StyleSheet.create({
     height: 30
   },
 
-  abacus1: { backgroundColor: "purple" },
-  abacus100: { backgroundColor: "orange" },
-  abacus1k: { backgroundColor: "green" },
-  abacus100k: { backgroundColor: "brown" },
-  abacus1m: { backgroundColor: "pink" },
-  abacus100m: { backgroundColor: "blue" },
-  abacus1b: { backgroundColor: "yellow" },
-  abacus100b: { backgroundColor: "cyan" },
-
-  bibBlue: {
-    color: "blue",
-    fontWeight: "bold",
-    fontSize: 30
-  },
-  red: {
-    color: "red"
-  },
-  button: {
-    height: 50,
-    color: "red"
-  },
-  buttonText: {
-    height: 50,
-    color: "blue"
-  }
+  abacusButton1: { backgroundColor: "purple" },
+  abacusButton100: { backgroundColor: "orange" },
+  abacusButton1k: { backgroundColor: "green" },
+  abacusButton100k: { backgroundColor: "brown" },
+  abacusButton1m: { backgroundColor: "pink" },
+  abacusButton100m: { backgroundColor: "blue" },
+  abacusButton1b: { backgroundColor: "yellow" },
+  abacusButton100b: { backgroundColor: "cyan" }
 });
+
+// {
+//   "items": [
+//    {
+//     "id": {
+//      "videoId": "shPv0B7nfNA"
+//     },
+//     "snippet": {
+//      "title": "LeBrock - Call Me",
+//      "channelTitle": "NewRetroWave"
+//     }
+//    },
+//    {
+//     "id": {
+//      "videoId": "MVJ3IZu0kBw"
+//     },
+//     "snippet": {
+//      "title": "LeBrock - Runaway",
+//      "channelTitle": "NewRetroWave"
+//     }
+//    },
+//    {
+//     "id": {
+//      "videoId": "h48rjAa_rpw"
+//     },
+//     "snippet": {
+//      "title": "LEBROCK - One Night",
+//      "channelTitle": "LEBROCK MUSIC"
+//     }
+//    }
+//   ]
+//  }
