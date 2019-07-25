@@ -1,60 +1,5 @@
 // https://www.googleapis.com/youtube/v3/search?q=lebrock&type=video&maxResults=3&part=snippet&fields=items(snippet(title,channelTitle),id/videoId)&key=${myKey}
 
-// INITIAL VIDEO SET FOR SEARCH
-// search       search?q={QUERY}&type=video
-// rounds       &maxResults={ROUNDS}
-// fields       &part=snippet&fields=items(snippet(title,channelTitle),id/videoId)
-
-// SPECIFIC VIDEO DETAILS
-
-// answers      videos?id={I}
-
-// Resource:        playlist (for use in future implimentation of user curated rounds)
-//                  search result
-//                  thumbnail (possibly use instead of embedding video?)
-//                  video (for info on single video)
-//                  videoCategory (are the categories in this list all I can use?)
-// part parameter:  snippet (publishedAt: datetime, title, description, thumbnails, channelTitle)
-//                  statistics? (viewCount, likeCount, dislikeCount)
-//                  topicCategories?
-//                  relevantTopicIds?
-
-// list (most popular videos, and most popular videos by category, search result)
-
-// CategoryIds:
-// 1 - Film & Animation
-// 2 - Autos & Vehicles
-// 10 - Music
-// 15 - Pets & Animals
-// 17 - Sports
-// 18 - Short Movies
-// 19 - Travel & Events
-// 20 - Gaming
-// 21 - Videoblogging
-// 22 - People & Blogs
-// 23 - Comedy
-// 24 - Entertainment
-// 25 - News & Politics
-// 26 - Howto & Style
-// 27 - Education
-// 28 - Science & Technology
-// 29 - Nonprofits & Activism
-// 30 - Movies
-// 31 - Anime/Animation
-// 32 - Action/Adventure
-// 33 - Classics
-// 34 - Comedy
-// 35 - Documentary
-// 36 - Drama
-// 37 - Family
-// 38 - Foreign
-// 39 - Horror
-// 40 - Sci-Fi/Fantasy
-// 41 - Thriller
-// 42 - Shorts
-// 43 - Shows
-// 44 - Trailers
-
 //Expo doesnt support SVG?
 import React, { Component } from "react";
 // AppRegistry not needed if using Create React Native App
@@ -64,29 +9,23 @@ import {
   Button,
   Image,
   SafeAreaView,
-  Slider,
-  StyleSheet,
   Text,
   TextInput,
   TouchableHighlight,
   View,
   WebView
 } from "react-native";
-import { config } from "./config.js";
+import { config } from "./config";
+import { styles } from "./components/styles";
 import { youTubeButtons } from "./components/abacus-buttons";
 
 const myKey = config.YouTubeDataKey;
+const buttonSet = youTubeButtons;
 
 let test;
 
 let concerns = [];
 let stage;
-let abacusAmount;
-let testingPressedButton;
-let abacusPressOut = false;
-let intervalId = 0;
-
-const buttonSet = youTubeButtons;
 
 let userSearch = "lebrock";
 let gameQuery = `search?q=${userSearch}&type=video`;
@@ -107,7 +46,6 @@ export default class YouTubeGameApp extends Component {
     super(props);
     this.state = {
       world: "YouTube",
-      text: "",
       guess: 0,
       players: [{ name: "Player 1", score: 0 }, { name: "Player 2", score: 0 }],
       activePlayer: 0,
@@ -115,7 +53,6 @@ export default class YouTubeGameApp extends Component {
       rounds: 5,
       currentRound: 1,
       time: 60,
-      deleteMe: null,
       currentConcernLoading: true,
       currentConcern: {
         url: null,
@@ -126,35 +63,28 @@ export default class YouTubeGameApp extends Component {
         dislikes: null
       }
     };
-
     this.onAbacusButtonPress = this.onAbacusButtonPress.bind(this);
-    // this.onAbacusButtonLongPress = this.onAbacusButtonLongPress.bind(this);
-    // this.onAbacusPressOut = this.onAbacusPressOut.bind(this);
+    this.onAbacusButtonLongPress = this.onAbacusButtonLongPress.bind(this);
+    this.onAbacusPressOut = this.onAbacusPressOut.bind(this);
   }
 
   onAbacusButtonPress(abacusAmount) {
     let oldGuess = this.state.guess;
     let newGuess = oldGuess + abacusAmount;
     this.setState({ guess: newGuess });
-    return;
   }
 
-  // onAbacusButtonLongPress(abacusAmount) {
-  //   setInterval(() => {
-  //     if (!abacusPressOut) {
-  //       let oldGuess = this.state.guess;
-  //       let newGuess = oldGuess + abacusAmount;
-  //       this.setState({ guess: newGuess });
-  //       abacusPressOut = false;
-  //       test = abacusPressOut;
-  //     } else clearInterval(interval);
-  //   }, 100);
-  //   return;
-  // }
+  onAbacusButtonLongPress(abacusAmount) {
+    let intervalId = setInterval(
+      () => this.onAbacusButtonPress(abacusAmount),
+      50
+    );
+    this.setState({ abacusIntervalId: intervalId });
+  }
 
-  // onAbacusPressOut() {
-  //   clearInterval(myInterval);
-  // }
+  onAbacusPressOut() {
+    clearInterval(this.state.abacusIntervalId);
+  }
 
   // should I use async?
   // reference: https://medium.com/@alialhaddad/fetching-data-in-react-native-d92fb6876973
@@ -171,7 +101,6 @@ export default class YouTubeGameApp extends Component {
             subTitle: resJson.items[0].snippet.channelTitle
           }
         });
-
         let resLength = resJson.items.length;
         for (i = 0; i < resLength - 1; i++) {
           let videoId = resJson.items[i].id.videoId;
@@ -199,17 +128,15 @@ export default class YouTubeGameApp extends Component {
 
   render() {
     if (this.state.currentConcernLoading) {
-      stage = <Text>Loading...</Text>;
+      stage = (
+        <View style={styles.game__stage}>
+          <Text>Loading...</Text>
+        </View>
+      );
     } else {
       let uri = this.state.currentConcern.url;
       stage = (
-        <View
-          style={{
-            flex: 6,
-            backgroundColor: "skyblue",
-            alignSelf: "stretch"
-          }}
-        >
+        <View style={styles.game__stage}>
           <WebView
             style={{ flex: 1, marginLeft: 20, marginRight: 20 }}
             javaScriptEnabled={true}
@@ -229,45 +156,17 @@ export default class YouTubeGameApp extends Component {
 
     return (
       <SafeAreaView style={{ flex: 1 }}>
-        <View
-          style={{
-            flex: 1,
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            marginTop: 25,
-            marginBottom: 25
-          }}
-        >
+        <View style={styles.game__container}>
           {/* test 2/2 */}
           <Text>{test}</Text>
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "powderblue",
-              flexDirection: "row"
-            }}
-          >
+          <View style={styles.game__titleAndTimer}>
             <Text style={{ flex: 9 }}>{this.state.gameType}</Text>
             <Image
               source={require("./assets/icon.png")}
-              style={{
-                flex: 1,
-                resizeMode: "contain",
-                height: undefined,
-                width: undefined
-              }}
+              style={styles.game__timer}
             />
           </View>
-          <View
-            style={{
-              flex: 6,
-              backgroundColor: "skyblue",
-              alignSelf: "stretch"
-            }}
-          >
-            {stage}
-          </View>
+          {stage}
           <View
             style={{
               flex: 4,
@@ -293,16 +192,7 @@ export default class YouTubeGameApp extends Component {
               }
               value={`${numWithCommas(this.state.guess)}`}
             />
-            <View
-              style={{
-                flex: 1,
-                flexDirection: "row",
-                backgroundColor: "red",
-                opacity: 0.5,
-                alignSelf: "stretch",
-                alignContent: "center"
-              }}
-            >
+            <View style={styles.game__buttons}>
               {buttonSet.map(i => (
                 <TouchableHighlight
                   key={this.state.world + " " + "abacusButton" + i.name}
@@ -310,7 +200,7 @@ export default class YouTubeGameApp extends Component {
                   underlayColor={"pink"}
                   activeOpacity={1}
                   onPress={() => this.onAbacusButtonPress(i.amount)}
-                  onLongPress={this.addAbacus}
+                  onLongPress={() => this.onAbacusButtonLongPress(i.amount)}
                   onPressOut={this.onAbacusPressOut}
                 >
                   <Text>{i.name}</Text>
@@ -328,56 +218,3 @@ export default class YouTubeGameApp extends Component {
 
 // AppRegistry not needed if using Create React Native App
 AppRegistry.registerComponent("AwesomeProject", () => UselessTextInput);
-
-const styles = StyleSheet.create({
-  abacusButton: {
-    alignItems: "center",
-    padding: 10,
-    margin: 5,
-    flex: 1,
-    borderRadius: 50,
-    width: 5,
-    height: 30
-  },
-
-  abacusButton1: { backgroundColor: "purple" },
-  abacusButton100: { backgroundColor: "orange" },
-  abacusButton1k: { backgroundColor: "green" },
-  abacusButton100k: { backgroundColor: "brown" },
-  abacusButton1m: { backgroundColor: "pink" },
-  abacusButton100m: { backgroundColor: "blue" },
-  abacusButton1b: { backgroundColor: "yellow" },
-  abacusButton100b: { backgroundColor: "cyan" }
-});
-
-// {
-//   "items": [
-//    {
-//     "id": {
-//      "videoId": "shPv0B7nfNA"
-//     },
-//     "snippet": {
-//      "title": "LeBrock - Call Me",
-//      "channelTitle": "NewRetroWave"
-//     }
-//    },
-//    {
-//     "id": {
-//      "videoId": "MVJ3IZu0kBw"
-//     },
-//     "snippet": {
-//      "title": "LeBrock - Runaway",
-//      "channelTitle": "NewRetroWave"
-//     }
-//    },
-//    {
-//     "id": {
-//      "videoId": "h48rjAa_rpw"
-//     },
-//     "snippet": {
-//      "title": "LEBROCK - One Night",
-//      "channelTitle": "LEBROCK MUSIC"
-//     }
-//    }
-//   ]
-//  }

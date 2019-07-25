@@ -1,4 +1,43 @@
+import { StyleSheet } from "react-native";
+
 const styles = StyleSheet.create({
+  game__container: {
+    flex: 1,
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 25,
+    marginBottom: 25
+  },
+
+  game__stage: {
+    flex: 6,
+    backgroundColor: "skyblue",
+    alignSelf: "stretch"
+  },
+
+  game__titleAndTimer: {
+    flex: 1,
+    backgroundColor: "powderblue",
+    flexDirection: "row"
+  },
+
+  game__timer: {
+    flex: 1,
+    resizeMode: "contain",
+    height: undefined,
+    width: undefined
+  },
+
+  game__buttons: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: "red",
+    opacity: 0.5,
+    alignSelf: "stretch",
+    alignContent: "center"
+  },
+
   abacusButton: {
     alignItems: "center",
     padding: 10,
