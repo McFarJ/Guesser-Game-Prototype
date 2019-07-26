@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch"
   },
 
-  game__titleAndTimer: {
+  game__titleAndTimerBar: {
     flex: 1,
     backgroundColor: "powderblue",
     flexDirection: "row"
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
 
   abacusButton: {
     alignItems: "center",
-    padding: 10,
+    padding: 0,
     margin: 5,
     flex: 1,
     borderRadius: 50,
