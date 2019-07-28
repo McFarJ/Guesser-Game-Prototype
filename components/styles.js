@@ -55,7 +55,9 @@ const styles = StyleSheet.create({
   abacusButton1m: { backgroundColor: "pink" },
   abacusButton100m: { backgroundColor: "blue" },
   abacusButton1b: { backgroundColor: "yellow" },
-  abacusButton100b: { backgroundColor: "cyan" }
+  abacusButton100b: { backgroundColor: "cyan" },
+
+  game_currentPlayer: { backgroundColor: "red" }
 });
 
 export { styles };

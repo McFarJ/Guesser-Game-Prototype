@@ -5,11 +5,12 @@ export default class MenuScreen extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      world: "YouTube",
       players: [{ name: "player 1" }, { name: "player 2" }],
       gameType: "CLOSEST GUESS WINS",
-      rounds: 3,
-      roundTime: 60
+      rounds: 4,
+      roundTime: 60,
+      userSearch: "lebrock",
+      category: null
     };
   }
   render() {
@@ -19,13 +20,13 @@ export default class MenuScreen extends React.Component {
         <Button
           title="Start a Game!"
           onPress={() => {
-            /* 1. Navigate to the Details route with params */
             this.props.navigation.navigate("Game", {
-              world: this.state.world,
+              world: this.props.navigation.getParam("world"),
               players: this.state.players,
               gameType: this.state.gameType,
               rounds: this.state.rounds,
-              time: this.state.roundTime
+              time: this.state.roundTime,
+              userSearch: this.state.userSearch
             });
           }}
         />
