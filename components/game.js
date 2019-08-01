@@ -14,12 +14,12 @@ import {
 import { config } from "../config";
 import { styles } from "./styles";
 import { youTubeButtons } from "./abacus-buttons";
+import Timer from "./timer";
 
 const myKey = config.YouTubeDataKey;
 const buttonSet = youTubeButtons;
 
-let test,
-  concerns = [],
+let concerns = [],
   stage,
   userSearch,
   gameQuery,
@@ -60,11 +60,13 @@ export default class GameScreen extends Component {
         subTitle: null
       },
       abacusInterval: null,
-      test: "xxx"
+      timerStart: false
     };
     this.onAbacusPressIn = this.onAbacusPressIn.bind(this);
     this.onAbacusPressOut = this.onAbacusPressOut.bind(this);
     this.onGuessPress = this.onGuessPress.bind(this);
+    this.onWebViewLoad = this.onWebViewLoad.bind(this);
+    this.timerEnd = this.timerEnd.bind(this);
   }
 
   onAbacusPressIn(abacusAmount) {
@@ -100,6 +102,7 @@ export default class GameScreen extends Component {
         currentPlayer: nextPlayer,
         guess: 0
       });
+      this.setState({ timerStart: true });
     } else {
       let completeRoundStats = this.state.roundStats;
       completeRoundStats[currentRound - 1].guesses[currentPlayer] = [
@@ -128,6 +131,15 @@ export default class GameScreen extends Component {
     }
   }
 
+  onWebViewLoad() {
+    this.setState({ timerStart: true });
+  }
+
+  timerEnd() {
+    this.setState({ timerStart: false });
+    this.onGuessPress();
+  }
+
   // should I use async?
   // reference: https://medium.com/@alialhaddad/fetching-data-in-react-native-d92fb6876973
   async componentDidMount() {
@@ -136,18 +148,18 @@ export default class GameScreen extends Component {
       .then(res => res.json())
       .then(resJson => {
         this.setState({
-          currentConcernLoading: false,
           currentConcern: {
             url: `https://www.youtube.com/embed/${resJson.items[0].id.videoId}`,
             title: resJson.items[0].snippet.title,
             subTitle: resJson.items[0].snippet.channelTitle
-          }
+          },
+          currentConcernLoading: false
         });
         let resLength = resJson.items.length;
         for (i = 0; i < resLength; i++) {
           let videoId = resJson.items[i].id.videoId;
           let title = resJson.items[i].snippet.title;
-          let subTitle = resJson.items[i].snippet.channelTitlel;
+          let subTitle = resJson.items[i].snippet.channelTitle;
           let statsFields =
             "fields=items(statistics(viewCount,likeCount,dislikeCount))";
           let videoStatsQuery = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoId}&${statsFields}&key=${myKey}`;
@@ -162,7 +174,6 @@ export default class GameScreen extends Component {
                 likes: statsResJson.items[0].statistics.likeCount,
                 dislikes: statsResJson.items[0].statistics.dislikeCount
               });
-              alert(`concerns variable: ${JSON.stringify(concerns)}`);
             });
         }
       })
@@ -196,6 +207,8 @@ export default class GameScreen extends Component {
             style={{ flex: 1, marginLeft: 20, marginRight: 20 }}
             javaScriptEnabled={true}
             source={{ uri: uri }}
+            //onLoad={this.setState({ timerStart: false })}
+            onLoad={this.onWebViewLoad}
           />
           <View>
             <Text style={{ textAlign: "center" }}>
@@ -212,10 +225,13 @@ export default class GameScreen extends Component {
     return (
       <SafeAreaView style={{ flex: 1 }}>
         <View style={styles.game__container}>
-          {/* test 2/2 */}
-          <Text>{test}</Text>
           <View style={styles.game__titleAndTimerBar}>
             <Text style={{ flex: 9 }}>{gameType}</Text>
+            <Timer
+              time={this.props.navigation.getParam("time")}
+              timerStart={this.state.timerStart}
+              timerEnd={this.timerEnd}
+            />
             <Image
               source={require("../assets/icon.png")}
               style={styles.game__timer}

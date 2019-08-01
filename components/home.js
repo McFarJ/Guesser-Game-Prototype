@@ -9,6 +9,7 @@ export default class HomeScreen extends React.Component {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <Text>Home Screen!</Text>
+        <Text>Sign in with Facebook or play</Text>
         <Text>Choose your world</Text>
         <Button
           title="YouTube!"
@@ -19,19 +20,15 @@ export default class HomeScreen extends React.Component {
           }}
         />
         <Button
-          title="Rotten Tomatoes!"
+          title="Rotten Tomatoes! (coming soon)"
           onPress={() => {
-            this.props.navigation.navigate("Menu", {
-              world: "Rotten Tomatoes"
-            });
+            return;
           }}
         />
         <Button
-          title="Ebay!"
+          title="Ebay! (coming soon)"
           onPress={() => {
-            this.props.navigation.navigate("Menu", {
-              world: "Ebay"
-            });
+            return;
           }}
         />
       </View>
