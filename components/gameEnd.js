@@ -5,6 +5,19 @@ export default class GameEndScreen extends React.Component {
   constructor(props) {
     super(props);
   }
+
+  // calculateWinner(roundStats){
+  //   let printedStats
+  //   roundStats.map(round => {
+  //     let correctAnswer = round.viewCount;
+  //     let numberOfPlayers = this.navigate.getParam('players').length
+  //     roundStats.forEach(function(round){
+  //       let correctAnswer = round.viewCount;
+  //       let guesses = round.guesses
+  //     })
+  //   })
+  // }
+
   render() {
     let roundStats = this.props.navigation.getParam("roundStats");
     roundStats = JSON.stringify(roundStats);

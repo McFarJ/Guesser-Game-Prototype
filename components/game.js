@@ -15,6 +15,7 @@ import { config } from "../config";
 import { styles } from "./styles";
 import { youTubeButtons } from "./abacus-buttons";
 import Timer from "./timer";
+import Interstitial from "./interstitial";
 
 const myKey = config.YouTubeDataKey;
 const buttonSet = youTubeButtons;
@@ -39,12 +40,6 @@ function numWithNoCommas(num) {
   return Number(noCommas);
 }
 
-function seatSwitch() {
-  let movingPlayer = players[0];
-  players.shift();
-  players.push(movingPlayer);
-}
-
 export default class GameScreen extends Component {
   constructor(props) {
     super(props);
@@ -59,14 +54,23 @@ export default class GameScreen extends Component {
         title: null,
         subTitle: null
       },
+      webViewLoading: true,
       abacusInterval: null,
-      timerStart: false
+      timerStart: false,
+      interstitial: { on: false, midRound: false }
     };
     this.onAbacusPressIn = this.onAbacusPressIn.bind(this);
     this.onAbacusPressOut = this.onAbacusPressOut.bind(this);
+    this.stopTimer = this.stopTimer.bind(this);
+    this.startTimer = this.startTimer.bind(this);
     this.onGuessPress = this.onGuessPress.bind(this);
     this.onWebViewLoad = this.onWebViewLoad.bind(this);
-    this.timerEnd = this.timerEnd.bind(this);
+    this.timesUp = this.timesUp.bind(this);
+    this.setInterstitial = this.setInterstitial.bind(this);
+    this.updateCurrentPlayer = this.updateCurrentPlayer.bind(this);
+    this.startNewRound = this.startNewRound.bind(this);
+    this.seatSwitch = this.seatSwitch.bind(this);
+    this.finishGame = this.finishGame.bind(this);
   }
 
   onAbacusPressIn(abacusAmount) {
@@ -81,11 +85,31 @@ export default class GameScreen extends Component {
     clearTimeout(this.abacusInterval);
   }
 
+  stopTimer() {
+    this.setState({ timerStart: false });
+  }
+
+  startTimer() {
+    this.setState({ timerStart: true });
+  }
+
+  //player 2's guess stat is saving as an array and player 1's is saving as a string or digit.
+  // the final guess on final round doesn't currently save
   onGuessPress() {
+    this.stopTimer();
     let currentGuess = this.state.guess;
     let currentPlayer = this.state.currentPlayer;
     let pushedRounds = this.state.roundStats.length;
     let currentRound = this.state.currentRound;
+    let numOfPlayers = this.props.navigation.getParam("players").length;
+    if (currentPlayer != numOfPlayers - 1) {
+      this.setState({ interstitial: { on: true, midRound: true } });
+    } else if (currentPlayer === numOfPlayers - 1 && currentRound != rounds) {
+      this.setState({ interstitial: { on: true, midRound: false } });
+    } else if (currentPlayer === numOfPlayers - 1 && currentRound === rounds) {
+      this.finishGame();
+      return;
+    }
     if (currentRound > pushedRounds) {
       let currentVideo = this.state.currentConcern.title;
       let currentViewCount = concerns[currentRound - 1].viewCount;
@@ -96,48 +120,67 @@ export default class GameScreen extends Component {
       };
       let completeRoundStats = this.state.roundStats;
       completeRoundStats.push(newRound);
-      let nextPlayer = currentPlayer + 1;
       this.setState({
         roundStats: completeRoundStats,
-        currentPlayer: nextPlayer,
         guess: 0
       });
-      this.setState({ timerStart: true });
     } else {
+      this.setState({
+        webViewLoading: true
+      });
       let completeRoundStats = this.state.roundStats;
       completeRoundStats[currentRound - 1].guesses[currentPlayer] = [
         currentGuess
       ];
       this.setState({ roundStats: completeRoundStats, guess: 0 });
     }
-    let currentRoundStats = this.state.roundStats[currentRound - 1];
-    let numPlayersDone = Object.keys(currentRoundStats.guesses).length;
-    if (numPlayersDone === players.length && currentRound != rounds) {
+    if (currentPlayer === numOfPlayers - 1 && currentRound != rounds) {
       let nextConcern = {
         url: concerns[currentRound].url,
         title: concerns[currentRound].title,
         subTitle: concerns[currentRound].subTitle
       };
-      seatSwitch();
       this.setState({
-        currentConcern: nextConcern,
-        currentPlayer: 0,
-        currentRound: this.state.currentRound + 1
-      });
-    } else if (numPlayersDone === players.length && currentRound === rounds) {
-      this.props.navigation.navigate("GameEnd", {
-        roundStats: this.state.roundStats
+        currentConcern: nextConcern
       });
     }
   }
 
   onWebViewLoad() {
-    this.setState({ timerStart: true });
+    this.setState({ webViewLoading: false });
+    if (!this.state.interstitial.on) {
+      this.startTimer();
+    }
   }
 
-  timerEnd() {
-    this.setState({ timerStart: false });
+  timesUp() {
+    this.stopTimer();
     this.onGuessPress();
+  }
+
+  setInterstitial(on, midRound) {
+    this.setState({ interstitial: { on: on, midRound: midRound } });
+  }
+
+  updateCurrentPlayer(nextPlayer) {
+    this.setState({ currentPlayer: nextPlayer });
+  }
+
+  seatSwitch() {
+    let movingPlayer = players[0];
+    players.shift();
+    players.push(movingPlayer);
+  }
+
+  startNewRound() {
+    this.setState({ currentRound: this.state.currentRound + 1 });
+  }
+
+  finishGame() {
+    this.props.navigation.navigate("GameEnd", {
+      roundStats: this.state.roundStats,
+      players: this.props.navigation.getParam("players")
+    });
   }
 
   // should I use async?
@@ -203,11 +246,26 @@ export default class GameScreen extends Component {
       let uri = this.state.currentConcern.url;
       stage = (
         <View style={styles.game__stage}>
+          <Interstitial
+            stopTimer={this.stopTimer}
+            startTimer={this.startTimer}
+            status={this.state.interstitial}
+            setInterstitial={this.setInterstitial}
+            webViewLoading={this.state.webViewLoading}
+            pushedRounds={this.state.roundStats.length}
+            pushedRounds="0"
+            currentRound={this.state.currentRound}
+            currentPlayer={this.state.currentPlayer}
+            numOfPlayers={this.props.navigation.getParam("players").length}
+            numOfPlayers="1"
+            updateCurrentPlayer={this.updateCurrentPlayer}
+            seatSwitch={this.seatSwitch}
+            startNewRound={this.startNewRound}
+          />
           <WebView
             style={{ flex: 1, marginLeft: 20, marginRight: 20 }}
             javaScriptEnabled={true}
             source={{ uri: uri }}
-            //onLoad={this.setState({ timerStart: false })}
             onLoad={this.onWebViewLoad}
           />
           <View>
@@ -230,7 +288,7 @@ export default class GameScreen extends Component {
             <Timer
               time={this.props.navigation.getParam("time")}
               timerStart={this.state.timerStart}
-              timerEnd={this.timerEnd}
+              timesUp={this.timesUp}
             />
             <Image
               source={require("../assets/icon.png")}
