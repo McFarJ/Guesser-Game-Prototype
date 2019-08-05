@@ -1,4 +1,5 @@
 
+YouTube Data API key needed
 create config.js in root folder:
 
 const config = {
