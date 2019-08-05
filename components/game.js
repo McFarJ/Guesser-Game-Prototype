@@ -24,8 +24,6 @@ const buttonSet = youTubeButtons;
 
 let concerns = [],
   stage,
-  userSearch,
-  gameQuery,
   queryUrl,
   world,
   players,
@@ -233,10 +231,7 @@ export default class GameScreen extends Component {
     gameType = this.props.navigation.getParam("gameType");
     rounds = this.props.navigation.getParam("rounds");
     roundTime = this.props.navigation.getParam("roundTime");
-    userSearch = this.props.navigation.getParam("userSearch");
-
-    gameQuery = `search?q=${userSearch}&type=video`;
-    queryUrl = `https://www.googleapis.com/youtube/v3/${gameQuery}&maxResults=${rounds}&part=snippet&fields=items(snippet(title,channelTitle),id/videoId)&key=${myKey}`;
+    queryUrl = this.props.navigation.getParam("queryUrl");
 
     if (this.state.currentConcernLoading) {
       stage = (

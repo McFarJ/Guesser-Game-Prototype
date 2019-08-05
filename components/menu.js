@@ -26,7 +26,6 @@ export default class MenuScreen extends React.Component {
       gameType: this.state.gameType,
       rounds: this.state.rounds,
       time: this.state.roundTime,
-      userSearch: this.state.userSearch,
       queryUrl: queryUrl
     });
   }
