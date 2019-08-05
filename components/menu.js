@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { Button, Text, View, Picker } from "react-native";
+import MenuPrompt from "./menuPrompt";
 
 export default class MenuScreen extends React.Component {
   constructor(props) {
@@ -10,12 +11,52 @@ export default class MenuScreen extends React.Component {
       rounds: 3,
       roundTime: 30,
       userSearch: "lebrock",
-      category: null
+      category: null,
+      promptHidden: true,
+      showButton: true
     };
+
+    this.onStartGameButtonPress = this.onStartGameButtonPress.bind(this);
   }
+
+  onStartGameButtonPress(queryUrl) {
+    this.props.navigation.navigate("Game", {
+      world: this.props.navigation.getParam("world"),
+      players: this.state.players,
+      gameType: this.state.gameType,
+      rounds: this.state.rounds,
+      time: this.state.roundTime,
+      userSearch: this.state.userSearch,
+      queryUrl: queryUrl
+    });
+  }
+
   render() {
+    let menuButton;
+    if (this.state.showButton) {
+      menuButton = (
+        <Button
+          title="Okay!"
+          onPress={() => {
+            if (this.state.rounds === null) {
+              this.setState({ rounds: 3 });
+            }
+            this.setState({ promptHidden: false });
+            this.setState({ showButton: false });
+          }}
+        />
+      );
+    } else {
+      menuButton = null;
+    }
+
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <MenuPrompt
+          promptHidden={this.state.promptHidden}
+          onStartGameButtonPress={this.onStartGameButtonPress}
+          rounds={this.state.rounds}
+        />
         <Text>Menu Screen!</Text>
         <Text>Game Options</Text>
         <View>
@@ -27,7 +68,7 @@ export default class MenuScreen extends React.Component {
               this.setState({ gameType: itemValue })
             }
           >
-            <Picker.Item label="over/under" value="over/under" />
+            <Picker.Item label="over/under (comingsoon)" value="over/under" />
             <Picker.Item label="view count" value="view count" />
           </Picker>
         </View>
@@ -62,22 +103,7 @@ export default class MenuScreen extends React.Component {
           </Picker>
         </View>
 
-        <Button
-          title="Start a Game!"
-          onPress={() => {
-            if (this.state.rounds === null) {
-              this.setState({ rounds: 3 });
-            }
-            this.props.navigation.navigate("Game", {
-              world: this.props.navigation.getParam("world"),
-              players: this.state.players,
-              gameType: this.state.gameType,
-              rounds: this.state.rounds,
-              time: this.state.roundTime,
-              userSearch: this.state.userSearch
-            });
-          }}
-        />
+        {menuButton}
       </View>
     );
   }

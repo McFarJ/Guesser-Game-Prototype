@@ -5,7 +5,6 @@ export default class Timer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      time: this.props.time,
       displayedTime: null,
       timerInterval: null
     };
@@ -15,31 +14,29 @@ export default class Timer extends React.Component {
     this.setState({ displayedTime: this.props.time });
   }
 
-  // closing midRoundInterstitials starts new timer.
   componentDidUpdate(prevProps) {
     if (
-      //revieved new props: timerStart
-      this.props.timerStart != prevProps.timerStart &&
-      this.props.timerStart === true
+      this.props.timerStarted != prevProps.timerStarted &&
+      this.props.timerStarted === true
     ) {
       this.timerInterval = setInterval(() => {
         let newTime = this.state.displayedTime - 1;
         this.setState({ displayedTime: newTime });
         if (this.state.displayedTime < 1) {
           clearInterval(this.timerInterval);
-          this.setState({ displayedTime: this.state.time });
+          this.setState({ displayedTime: this.props.time });
           this.props.timesUp();
         }
       }, 1000);
     }
     if (
-      //recieved new props: !timerStart
-      this.props.timerStart != prevProps.timerStart &&
-      this.props.timerStart === false
+      this.props.timerStarted != prevProps.timerStarted &&
+      this.props.timerStarted === false
     ) {
       clearInterval(this.timerInterval);
-      this.setState({ displayedTime: this.state.time });
+      this.setState({ displayedTime: this.props.time });
     }
+    //is this needed anymore
     if (this.props.timerReload != prevProps.timerReload) {
       this.timerInterval = setInterval(() => {
         let newTime = this.state.displayedTime - 1;

@@ -59,8 +59,30 @@ const styles = StyleSheet.create({
 
   game_currentPlayer: { backgroundColor: "red" },
 
-  game__interstitial: {},
-  game__interstitial_hidden: {}
+  game__interstitial: {
+    backgroundColor: "skyblue",
+    position: "absolute",
+    height: "100%",
+    width: "100%",
+    zIndex: 9999,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row"
+  },
+
+  testText: { color: "red" },
+  testButton: { color: "green" },
+
+  menu__prompt: {
+    backgroundColor: "white",
+    position: "absolute",
+    height: "100%",
+    width: "100%",
+    zIndex: 9999,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "column"
+  }
 });
 
 export { styles };

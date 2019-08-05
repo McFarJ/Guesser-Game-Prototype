@@ -1,3 +1,5 @@
+// abacus buttons and guess button need to be made inactive until webview loads
+
 import React, { Component } from "react";
 // AppRegistry not needed if using Create React Native App
 import {
@@ -56,7 +58,7 @@ export default class GameScreen extends Component {
       },
       webViewLoading: true,
       abacusInterval: null,
-      timerStart: false,
+      timerStarted: false,
       interstitial: { on: false, midRound: false }
     };
     this.onAbacusPressIn = this.onAbacusPressIn.bind(this);
@@ -86,11 +88,11 @@ export default class GameScreen extends Component {
   }
 
   stopTimer() {
-    this.setState({ timerStart: false });
+    this.setState({ timerStarted: false });
   }
 
   startTimer() {
-    this.setState({ timerStart: true });
+    this.setState({ timerStarted: true });
   }
 
   //player 2's guess stat is saving as an array and player 1's is saving as a string or digit.
@@ -287,7 +289,7 @@ export default class GameScreen extends Component {
             <Text style={{ flex: 9 }}>{gameType}</Text>
             <Timer
               time={this.props.navigation.getParam("time")}
-              timerStart={this.state.timerStart}
+              timerStarted={this.state.timerStarted}
               timesUp={this.timesUp}
             />
             <Image

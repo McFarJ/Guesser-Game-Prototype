@@ -5,8 +5,6 @@ import { styles } from "./styles";
 export default class Interstitial extends React.Component {
   constructor(props) {
     super(props);
-    // this.state = {
-    // }
     this.endRoundInterstitialPress = this.endRoundInterstitialPress.bind(this);
     this.midRoundInterstitialPress = this.midRoundInterstitialPress.bind(this);
   }
@@ -17,7 +15,7 @@ export default class Interstitial extends React.Component {
     this.props.startNewRound();
     this.props.updateCurrentPlayer(0);
     if (!this.props.webViewLoading) {
-      this.props.startTimer;
+      this.props.startTimer();
     }
   }
 
@@ -32,7 +30,7 @@ export default class Interstitial extends React.Component {
     } else {
       this.props.setInterstitial(false, true);
     }
-    this.props.startTimer;
+    this.props.startTimer();
   }
 
   render() {
@@ -47,9 +45,15 @@ export default class Interstitial extends React.Component {
         onInterstitialPress = this.endRoundInterstitialPress;
       }
       interstitial = (
-        <View style={{ interstitialStyle }}>
-          <Text>{this.props.player} ready?</Text>
-          <Button title="Go!" onPress={onInterstitialPress} />
+        <View style={interstitialStyle}>
+          <Text style={styles.testText}>
+            player {this.props.currentPlayer} ready?
+          </Text>
+          <Button
+            style={styles.testButton}
+            title="Go!"
+            onPress={onInterstitialPress}
+          />
         </View>
       );
     } else {
