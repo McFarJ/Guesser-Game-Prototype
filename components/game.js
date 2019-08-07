@@ -1,5 +1,3 @@
-// abacus buttons and guess button need to be made inactive until webview loads
-
 import React, { Component } from "react";
 // AppRegistry not needed if using Create React Native App
 import {
@@ -13,6 +11,9 @@ import {
   View,
   WebView
 } from "react-native";
+import { Button as ElementsButton } from "react-native-elements";
+//see about pre-loading assets via https://docs.expo.io/versions/latest/guides/preloading-and-caching-assets/
+import { Ionicons } from "@expo/vector-icons";
 import { config } from "../config";
 import { styles } from "./styles";
 import { youTubeButtons } from "./abacus-buttons";
@@ -29,7 +30,10 @@ let concerns = [],
   players,
   gameType,
   rounds,
-  roundTime;
+  roundTime,
+  addCircleIcon = "md-add-circle",
+  subtractCircleIcon = "md-remove-circle-outline",
+  guessMath;
 
 function numWithCommas(num) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -57,7 +61,8 @@ export default class GameScreen extends Component {
       webViewLoading: true,
       abacusInterval: null,
       timerStarted: false,
-      interstitial: { on: false, midRound: false }
+      interstitial: { on: false, midRound: false },
+      abacusAdds: true
     };
     this.onAbacusPressIn = this.onAbacusPressIn.bind(this);
     this.onAbacusPressOut = this.onAbacusPressOut.bind(this);
@@ -71,14 +76,35 @@ export default class GameScreen extends Component {
     this.startNewRound = this.startNewRound.bind(this);
     this.seatSwitch = this.seatSwitch.bind(this);
     this.finishGame = this.finishGame.bind(this);
+    this.onAddOrSubtractPress = this.onAddOrSubtractPress.bind(this);
   }
 
   onAbacusPressIn(abacusAmount) {
-    this.setState({ guess: this.state.guess + abacusAmount });
-    this.abacusInterval = setTimeout(
-      () => this.onAbacusPressIn(abacusAmount),
-      60
-    );
+    if (
+      this.state.webViewLoading === true ||
+      this.state.interstitial.on === true
+    ) {
+      return;
+    } else {
+      if (this.state.abacusAdds) {
+        if (this.state.guess + abacusAmount > 9999999999999) {
+          this.setState({ guess: 9999999999999 });
+          return;
+        }
+        guessMath = { guess: this.state.guess + abacusAmount };
+      } else {
+        if (this.state.guess - abacusAmount < 0) {
+          this.setState({ guess: 0 });
+          return;
+        }
+        guessMath = { guess: this.state.guess - abacusAmount };
+      }
+      this.setState(guessMath);
+      this.abacusInterval = setTimeout(
+        () => this.onAbacusPressIn(abacusAmount),
+        60
+      );
+    }
   }
 
   onAbacusPressOut() {
@@ -93,57 +119,8 @@ export default class GameScreen extends Component {
     this.setState({ timerStarted: true });
   }
 
-  //player 2's guess stat is saving as an array and player 1's is saving as a string or digit.
-  // the final guess on final round doesn't currently save
-  onGuessPress() {
-    this.stopTimer();
-    let currentGuess = this.state.guess;
-    let currentPlayer = this.state.currentPlayer;
-    let pushedRounds = this.state.roundStats.length;
-    let currentRound = this.state.currentRound;
-    let numOfPlayers = this.props.navigation.getParam("players").length;
-    if (currentPlayer != numOfPlayers - 1) {
-      this.setState({ interstitial: { on: true, midRound: true } });
-    } else if (currentPlayer === numOfPlayers - 1 && currentRound != rounds) {
-      this.setState({ interstitial: { on: true, midRound: false } });
-    } else if (currentPlayer === numOfPlayers - 1 && currentRound === rounds) {
-      this.finishGame();
-      return;
-    }
-    if (currentRound > pushedRounds) {
-      let currentVideo = this.state.currentConcern.title;
-      let currentViewCount = concerns[currentRound - 1].viewCount;
-      let newRound = {
-        video: currentVideo,
-        viewCount: currentViewCount,
-        guesses: { [currentPlayer]: currentGuess }
-      };
-      let completeRoundStats = this.state.roundStats;
-      completeRoundStats.push(newRound);
-      this.setState({
-        roundStats: completeRoundStats,
-        guess: 0
-      });
-    } else {
-      this.setState({
-        webViewLoading: true
-      });
-      let completeRoundStats = this.state.roundStats;
-      completeRoundStats[currentRound - 1].guesses[currentPlayer] = [
-        currentGuess
-      ];
-      this.setState({ roundStats: completeRoundStats, guess: 0 });
-    }
-    if (currentPlayer === numOfPlayers - 1 && currentRound != rounds) {
-      let nextConcern = {
-        url: concerns[currentRound].url,
-        title: concerns[currentRound].title,
-        subTitle: concerns[currentRound].subTitle
-      };
-      this.setState({
-        currentConcern: nextConcern
-      });
-    }
+  setInterstitial(on, midRound) {
+    this.setState({ interstitial: { on: on, midRound: midRound } });
   }
 
   onWebViewLoad() {
@@ -156,10 +133,6 @@ export default class GameScreen extends Component {
   timesUp() {
     this.stopTimer();
     this.onGuessPress();
-  }
-
-  setInterstitial(on, midRound) {
-    this.setState({ interstitial: { on: on, midRound: midRound } });
   }
 
   updateCurrentPlayer(nextPlayer) {
@@ -183,6 +156,78 @@ export default class GameScreen extends Component {
     });
   }
 
+  onAddOrSubtractPress(selection) {
+    if (selection === "md-add-circle") {
+      this.setState({ abacusAdds: true });
+      addCircleIcon = "md-add-circle";
+      subtractCircleIcon = "md-remove-circle-outline";
+    } else if (selection === "md-remove-circle") {
+      this.setState({ abacusAdds: false });
+      addCircleIcon = "md-add-circle-outline";
+      subtractCircleIcon = "md-remove-circle";
+    }
+  }
+
+  onGuessPress() {
+    if (
+      this.state.webViewLoading === true ||
+      this.state.interstitial.on === true
+    ) {
+      return;
+    } else {
+      this.stopTimer();
+      let currentGuess = this.state.guess;
+      let currentPlayer = this.state.currentPlayer;
+      let pushedRounds = this.state.roundStats.length;
+      let currentRound = this.state.currentRound;
+      let numOfPlayers = this.props.navigation.getParam("players").length;
+      // if (there's future players in round){interstitial}
+      if (currentPlayer != numOfPlayers - 1) {
+        this.setInterstitial(true, true);
+        // if (there's no future players in round & it wasn't last round){interstitial}
+      } else if (currentPlayer === numOfPlayers - 1 && currentRound != rounds) {
+        this.setInterstitial(true, false);
+        this.setState({ webViewLoading: true });
+        let nextConcern = {
+          url: concerns[currentRound].url,
+          title: concerns[currentRound].title,
+          subTitle: concerns[currentRound].subTitle
+        };
+        this.setState({
+          currentConcern: nextConcern
+        });
+      }
+      //if (it's the first stat entry of a round){create new round stat, push stats, reset guess}
+      if (currentRound > pushedRounds) {
+        let currentVideo = this.state.currentConcern.title;
+        let currentViewCount = concerns[currentRound - 1].viewCount;
+        let newRound = {
+          video: currentVideo,
+          viewCount: currentViewCount,
+          guesses: { [currentPlayer]: currentGuess }
+        };
+        let completeRoundStats = this.state.roundStats;
+        completeRoundStats.push(newRound);
+        this.setState({
+          roundStats: completeRoundStats,
+          guess: 0
+        });
+        // if (it's not the first stat entry of a round){add new stats to the round stats, reset guess}
+      } else {
+        let completeRoundStats = this.state.roundStats;
+        completeRoundStats[currentRound - 1].guesses[
+          currentPlayer
+        ] = currentGuess;
+        this.setState({ roundStats: completeRoundStats, guess: 0 });
+      }
+      // if (if there's no future players & it's the last round)
+      if (currentPlayer === numOfPlayers - 1 && currentRound === rounds) {
+        this.finishGame();
+      }
+    }
+  }
+
+  // why are there duplicate videos in some games? do they have the same id number
   // should I use async?
   // reference: https://medium.com/@alialhaddad/fetching-data-in-react-native-d92fb6876973
   async componentDidMount() {
@@ -330,19 +375,41 @@ export default class GameScreen extends Component {
                 ) : null
               )}
             </View>
-            <TextInput
-              id="game_dynamic-number"
-              style={{
-                flex: 1,
-                padding: 10,
-                fontSize: 42,
-                textAlign: "center"
-              }}
-              //onChangeText={text =>
-              // this.setState({ guess: `${numWithNoCommas(text)}` })
-              //}
-              value={`${numWithCommas(this.state.guess)}`}
-            />
+            <View id="test" style={{ flexDirection: "row" }}>
+              <TextInput
+                id="game_dynamic-number"
+                style={{
+                  flex: 1,
+                  padding: 10,
+                  fontSize: 42,
+                  textAlign: "center"
+                }}
+                //onChangeText={text =>
+                // this.setState({ guess: `${numWithNoCommas(text)}` })
+                //}
+                value={`${numWithCommas(this.state.guess)}`}
+              />
+              <View
+                style={{
+                  position: "absolute",
+                  flexDirection: "column",
+                  textAlign: "right"
+                }}
+              >
+                <Ionicons
+                  name={addCircleIcon}
+                  size={32}
+                  color="green"
+                  onPress={() => this.onAddOrSubtractPress("md-add-circle")}
+                />
+                <Ionicons
+                  name={subtractCircleIcon}
+                  size={32}
+                  color="green"
+                  onPress={() => this.onAddOrSubtractPress("md-remove-circle")}
+                />
+              </View>
+            </View>
             <View style={styles.game__buttons}>
               {buttonSet.map(i => (
                 <TouchableHighlight
@@ -359,11 +426,22 @@ export default class GameScreen extends Component {
             </View>
           </View>
           {/* Will need to create own TouchableOpacity button if want to control things like height and font-size*/}
-          <Button
-            //{...this.props}
-            title="Guess!"
-            onPress={this.onGuessPress}
-          />
+          <View
+            style={{
+              width: "80%",
+              justifyContent: "center",
+              backgroundColor: "pink"
+            }}
+          >
+            <ElementsButton
+              //{...this.props}
+              title="GUESS"
+              onPress={this.onGuessPress}
+              raised={true}
+              fontFamily={"sans-serif-medium"}
+              fontSize={"40px"}
+            />
+          </View>
         </View>
       </SafeAreaView>
     );
